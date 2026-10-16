@@ -1,0 +1,792 @@
+import {
+  ConstraintConfig,
+  IndustryPresetId,
+  PhysicalValidationRecord,
+  ProcessRealismConfig,
+  ProductId,
+  ProductSpec,
+  StationNode,
+} from "@/types/simulation";
+
+export const DEFAULT_REALISM_CONFIG: ProcessRealismConfig = {
+  changeoverSeconds: 6,
+  reworkRatePercent: 15,
+  hourlyLaborRateUSD: 28,
+  hourlyLaborRateKRW: 22000,
+};
+
+export interface IndustryWorkcellPreset {
+  id: IndustryPresetId;
+  naicsCode: string;
+  usSharePercent: string;
+  stations: StationNode[];
+  products: Record<ProductId, ProductSpec>;
+  constraints: ConstraintConfig;
+  defaultRealism: ProcessRealismConfig;
+  standardOrderText: string;
+  urgentOrderText: string;
+}
+
+export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryWorkcellPreset> = {
+  // 1. NAICS 332 (19.0% of all US factories - #1 Rank): CNC Machining & Sheet Metal Job Shop
+  cnc_metal_shop: {
+    id: "cnc_metal_shop",
+    naicsCode: "NAICS 332",
+    usSharePercent: "19.0%",
+    stations: [
+      {
+        id: "binA",
+        label: "알루미늄 자재대",
+        subLabel: "6061-T6 환봉·각재 스토어",
+        type: "part_bin",
+        x: 1.4,
+        y: 2.0,
+        fixed: false,
+      },
+      {
+        id: "binB",
+        label: "스텐 자재대",
+        subLabel: "316L 스테인리스 빌렛 스토어",
+        type: "part_bin",
+        x: 1.4,
+        y: 6.0,
+        fixed: false,
+      },
+      {
+        id: "wb1",
+        label: "CNC 밀링 #1",
+        subLabel: "가공기술자 1 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 2.0,
+        fixed: false,
+        assignedWorkerId: "worker1",
+      },
+      {
+        id: "wb2",
+        label: "CNC 가공기 #2",
+        subLabel: "가공기술자 2 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 6.0,
+        fixed: false,
+        assignedWorkerId: "worker2",
+      },
+      {
+        id: "tool1",
+        label: "공용 세척기 #1",
+        subLabel: "초음파 세척·디버링기 (1대 공용)",
+        type: "shared_tool",
+        x: 7.7,
+        y: 4.0,
+        fixed: false,
+      },
+      {
+        id: "wb3",
+        label: "3차원 측정·포장",
+        subLabel: "품질기사 3 전담 [항온 정반 고정]",
+        type: "workbench_inspect",
+        x: 10.6,
+        y: 3.1,
+        fixed: true,
+        assignedWorkerId: "worker3",
+      },
+      {
+        id: "outBox",
+        label: "출하 팔레트",
+        subLabel: "방청 포장 출고대",
+        type: "shipping_out",
+        x: 10.6,
+        y: 6.1,
+        fixed: true,
+      },
+    ],
+    products: {
+      productA: {
+        id: "productA",
+        partNumber: "PN-4020-AL",
+        name: "유압 매니폴드 블록 (PN-4020)",
+        shortName: "유압 블록",
+        color: "#0071e3",
+        badgeColor: "bg-blue-500/20 text-blue-700 border-blue-500/40",
+        description:
+          "교차 유로 홀 내부 절삭유 세척 및 미세 버(Burr) 제거 때문에 공용 초음파 세척기 점유 시간(20초)이 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "알루미늄 절단 빌렛 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "CNC 밀링 포켓·드릴 가공",
+          },
+          toolWork: {
+            seconds: 20,
+            source: "measured",
+            note: "공용 초음파 탈지 세척 + 교차홀 디버링 (핵심 병목)",
+          },
+          inspectionPack: {
+            seconds: 8,
+            source: "measured",
+            note: "나사산 게이지 전수 검사 및 방청 포장",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+      productB: {
+        id: "productB",
+        partNumber: "PN-7190-SS",
+        name: "정밀 밸브 하우징 (PN-7190)",
+        shortName: "밸브 하우징",
+        color: "#f59e0b",
+        badgeColor: "bg-amber-500/20 text-amber-700 border-amber-500/40",
+        description:
+          "초음파 세척(16초) 후 3차원 측정기(CMM) 정밀 공차 측정(13초)이 필수인 고부가 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "스테인리스 단조 소재 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "정밀 보링 및 시트면 가공",
+          },
+          toolWork: {
+            seconds: 16,
+            source: "measured",
+            note: "공용 초음파 패시베이션 세척 및 에어블로잉",
+          },
+          inspectionPack: {
+            seconds: 13,
+            source: "measured",
+            note: "3차원 측정기(CMM) 동심도 측정 및 진공 포장",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+    },
+    constraints: {
+      rawNaturalLanguage:
+        "작업자 3명 유지. 3차원 측정기(CMM)는 화강암 정반 고정 설비라 이동 불가하며 품질 담당자(3번)만 조작 가능.",
+      keepHeadcount3: true,
+      workbench3Fixed: true,
+      inspectorDedicated: true,
+      maxExtraTools: 1,
+      allowBinRelocation: true,
+      allowTransportRobot: true,
+      budgetLimitKRW: 25000000,
+      costMoveBinsKRW: 3200000,
+      costAddToolKRW: 19500000,
+      costAddRobotKRW: 91000000,
+      costMoveBinsUSD: 2400,
+      costAddToolUSD: 14500,
+      costAddRobotUSD: 68000,
+    },
+    defaultRealism: {
+      changeoverSeconds: 6,
+      reworkRatePercent: 15,
+      hourlyLaborRateUSD: 28,
+      hourlyLaborRateKRW: 22000,
+    },
+    standardOrderText: "유압 매니폴드 블록 5개 + 정밀 밸브 하우징 5개 (평소 주문)",
+    urgentOrderText: "정밀 밸브 하우징 8개 + 유압 매니폴드 블록 2개 (긴급 주문)",
+  },
+
+  // 2. NAICS 311 (11.0% of all US factories - #2 Rank): Food & Nutraceutical Co-Packing Line
+  food_copacking: {
+    id: "food_copacking",
+    naicsCode: "NAICS 311",
+    usSharePercent: "11.0%",
+    stations: [
+      {
+        id: "binA",
+        label: "음료병 자재대",
+        subLabel: "살균 유리병 & 원액 탱크",
+        type: "part_bin",
+        x: 1.4,
+        y: 2.0,
+        fixed: false,
+      },
+      {
+        id: "binB",
+        label: "파우치 자재대",
+        subLabel: "유청 파우더 드럼 & 지퍼백",
+        type: "part_bin",
+        x: 1.4,
+        y: 6.0,
+        fixed: false,
+      },
+      {
+        id: "wb1",
+        label: "배합·정렬대 #1",
+        subLabel: "작업자 1 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 2.0,
+        fixed: false,
+        assignedWorkerId: "worker1",
+      },
+      {
+        id: "wb2",
+        label: "분말 준비대 #2",
+        subLabel: "작업자 2 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 6.0,
+        fixed: false,
+        assignedWorkerId: "worker2",
+      },
+      {
+        id: "tool1",
+        label: "공용 충진기 #1",
+        subLabel: "서보 충진·질소 실링기 (1대 공용)",
+        type: "shared_tool",
+        x: 7.7,
+        y: 4.0,
+        fixed: false,
+      },
+      {
+        id: "wb3",
+        label: "X-Ray·중량 검사",
+        subLabel: "품질검수원 3 전담 [컨베이어 고정]",
+        type: "workbench_inspect",
+        x: 10.6,
+        y: 3.1,
+        fixed: true,
+        assignedWorkerId: "worker3",
+      },
+      {
+        id: "outBox",
+        label: "출하 팔레트",
+        subLabel: "콜드체인 랩핑 출고대",
+        type: "shipping_out",
+        x: 10.6,
+        y: 6.1,
+        fixed: true,
+      },
+    ],
+    products: {
+      productA: {
+        id: "productA",
+        partNumber: "SKU-CB12-RTD",
+        name: "유기농 콜드브루 12팩 (SKU-CB12)",
+        shortName: "콜드브루 12팩",
+        color: "#0071e3",
+        badgeColor: "bg-blue-500/20 text-blue-700 border-blue-500/40",
+        description:
+          "거품 방지 정량 충진과 질소 실링 때문에 공용 충진기 점유 시간(20초)이 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "살균 공병 수령 및 에어 린스",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "원액 브릭스 확인 및 트레이 정렬",
+          },
+          toolWork: {
+            seconds: 20,
+            source: "measured",
+            note: "공용 서보 정량 충진 + 질소 캡핑",
+          },
+          inspectionPack: {
+            seconds: 8,
+            source: "measured",
+            note: "중량 확인 및 12팩 카톤 박스 포장",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+      productB: {
+        id: "productB",
+        partNumber: "SKU-WP32-PRO",
+        name: "단백질 파우치 2lb (SKU-WP32)",
+        shortName: "단백질 파우치",
+        color: "#f59e0b",
+        badgeColor: "bg-amber-500/20 text-amber-700 border-amber-500/40",
+        description:
+          "파우더 충진·열실링(16초) 후 X-Ray 이물검사 및 알레르기 라벨 검수(13초)가 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "파우더 원료 및 지퍼백 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "분말 체질 및 파우치 오픈 세팅",
+          },
+          toolWork: {
+            seconds: 16,
+            source: "measured",
+            note: "공용 오거(Auger) 충진 및 상단 열실링",
+          },
+          inspectionPack: {
+            seconds: 13,
+            source: "measured",
+            note: "X-Ray 금속검출 + 정밀 중량선별 + 알레르기 검수",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+    },
+    constraints: {
+      rawNaturalLanguage:
+        "작업자 3명 유지. X-Ray 금속검출·중량선별 라인은 고정 설비이며 검수 담당자(3번)만 운영.",
+      keepHeadcount3: true,
+      workbench3Fixed: true,
+      inspectorDedicated: true,
+      maxExtraTools: 1,
+      allowBinRelocation: true,
+      allowTransportRobot: true,
+      budgetLimitKRW: 30000000,
+      costMoveBinsKRW: 4300000,
+      costAddToolKRW: 24800000,
+      costAddRobotKRW: 96000000,
+      costMoveBinsUSD: 3200,
+      costAddToolUSD: 18500,
+      costAddRobotUSD: 72000,
+    },
+    defaultRealism: {
+      changeoverSeconds: 6,
+      reworkRatePercent: 15,
+      hourlyLaborRateUSD: 25,
+      hourlyLaborRateKRW: 20000,
+    },
+    standardOrderText: "콜드브루 12팩 5배치 + 단백질 파우치 5배치 (평소 주문)",
+    urgentOrderText: "단백질 파우치 8배치 + 콜드브루 12팩 2배치 (긴급 주문)",
+  },
+
+  // 3. NAICS 339 (8.3% of all US factories - #3 Rank): FDA Medical Device Cleanroom Cell
+  medical_device: {
+    id: "medical_device",
+    naicsCode: "NAICS 339",
+    usSharePercent: "8.3%",
+    stations: [
+      {
+        id: "binA",
+        label: "카테터 자재대",
+        subLabel: "단일루멘 카테터 튜브·허브",
+        type: "part_bin",
+        x: 1.4,
+        y: 2.0,
+        fixed: false,
+      },
+      {
+        id: "binB",
+        label: "매니폴드 자재대",
+        subLabel: "3루멘 매니폴드·지혈밸브",
+        type: "part_bin",
+        x: 1.4,
+        y: 6.0,
+        fixed: false,
+      },
+      {
+        id: "wb1",
+        label: "현미경 조립 #1",
+        subLabel: "클린룸 조합원 1 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 2.0,
+        fixed: false,
+        assignedWorkerId: "worker1",
+      },
+      {
+        id: "wb2",
+        label: "현미경 조립 #2",
+        subLabel: "클린룸 조합원 2 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 6.0,
+        fixed: false,
+        assignedWorkerId: "worker2",
+      },
+      {
+        id: "tool1",
+        label: "UV 경화기 #1",
+        subLabel: "의료용 UV 광경화 챔버 (1대 공용)",
+        type: "shared_tool",
+        x: 7.7,
+        y: 4.0,
+        fixed: false,
+      },
+      {
+        id: "wb3",
+        label: "리크 시험·포장",
+        subLabel: "QC 검증원 3 전담 [밸리데이션 고정]",
+        type: "workbench_inspect",
+        x: 10.6,
+        y: 3.1,
+        fixed: true,
+        assignedWorkerId: "worker3",
+      },
+      {
+        id: "outBox",
+        label: "출하 보관대",
+        subLabel: "Tyvek 멸균 파우치 출하대",
+        type: "shipping_out",
+        x: 10.6,
+        y: 6.1,
+        fixed: true,
+      },
+    ],
+    products: {
+      productA: {
+        id: "productA",
+        partNumber: "MD-104-SL",
+        name: "단일 루멘 정맥 카테터 (MD-104)",
+        shortName: "단루멘 카테터",
+        color: "#0071e3",
+        badgeColor: "bg-blue-500/20 text-blue-700 border-blue-500/40",
+        description:
+          "카뉼라 인장강도 확보를 위한 UV 본딩 경화 사이클 때문에 공용 UV 경화기 점유(20초)가 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "멸균 트레이 부품 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "UV 접착제 도포 및 허브 결합",
+          },
+          toolWork: {
+            seconds: 20,
+            source: "measured",
+            note: "공용 UV 광경화 챔버 조사 및 인장 확인",
+          },
+          inspectionPack: {
+            seconds: 8,
+            source: "measured",
+            note: "단채널 압력감쇠 리크 시험 및 파우치 실링",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+      productB: {
+        id: "productB",
+        partNumber: "MD-309-TL",
+        name: "3루멘 중심정맥 키트 (MD-309)",
+        shortName: "3루멘 카테터",
+        color: "#f59e0b",
+        badgeColor: "bg-amber-500/20 text-amber-700 border-amber-500/40",
+        description:
+          "3포트 UV 경화(16초) 후 3개 루멘 포트를 개별 공압 리크 시험하고 포장하여 검사 시간(14초)이 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "3루멘 튜브·클램프 키트 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "현미경 3포트 매니폴드 정렬 결합",
+          },
+          toolWork: {
+            seconds: 16,
+            source: "measured",
+            note: "공용 UV 광경화 챔버 3포트 경화",
+          },
+          inspectionPack: {
+            seconds: 14,
+            source: "measured",
+            note: "3채널 순차 공압 리크 테스트 + 블리스터 실링",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+    },
+    constraints: {
+      rawNaturalLanguage:
+        "작업자 3명 유지. 공압 리크 시험기는 밸리데이션 고정 설비로 이동 불가하며 품질 담당자(3번)만 운영.",
+      keepHeadcount3: true,
+      workbench3Fixed: true,
+      inspectorDedicated: true,
+      maxExtraTools: 1,
+      allowBinRelocation: true,
+      allowTransportRobot: true,
+      budgetLimitKRW: 25000000,
+      costMoveBinsKRW: 2800000,
+      costAddToolKRW: 20500000,
+      costAddRobotKRW: 101000000,
+      costMoveBinsUSD: 2100,
+      costAddToolUSD: 15200,
+      costAddRobotUSD: 75000,
+    },
+    defaultRealism: {
+      changeoverSeconds: 6,
+      reworkRatePercent: 15,
+      hourlyLaborRateUSD: 30,
+      hourlyLaborRateKRW: 24000,
+    },
+    standardOrderText: "단일 루멘 카테터 5로트 + 3루멘 중심정맥 키트 5로트 (평소 주문)",
+    urgentOrderText: "3루멘 중심정맥 키트 8로트 + 단일 루멘 카테터 2로트 (긴급 주문)",
+  },
+
+  // 4. NAICS 333/334 (11.6% of all US factories - #4 Rank): Industrial Control & PCB Box-Build EMS Cell
+  pcb_box_build: {
+    id: "pcb_box_build",
+    naicsCode: "NAICS 333/334",
+    usSharePercent: "11.6%",
+    stations: [
+      {
+        id: "binA",
+        label: "제어보드 자재대",
+        subLabel: "SMT 보드·알루미늄 방열판",
+        type: "part_bin",
+        x: 1.4,
+        y: 2.0,
+        fixed: false,
+      },
+      {
+        id: "binB",
+        label: "인버터 자재대",
+        subLabel: "480V 파워모듈·하네스",
+        type: "part_bin",
+        x: 1.4,
+        y: 6.0,
+        fixed: false,
+      },
+      {
+        id: "wb1",
+        label: "전장 조립대 #1",
+        subLabel: "전장조립원 1 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 2.0,
+        fixed: false,
+        assignedWorkerId: "worker1",
+      },
+      {
+        id: "wb2",
+        label: "전장 조립대 #2",
+        subLabel: "전장조립원 2 담당",
+        type: "workbench_assembly",
+        x: 4.7,
+        y: 6.0,
+        fixed: false,
+        assignedWorkerId: "worker2",
+      },
+      {
+        id: "tool1",
+        label: "회로 시험기 #1",
+        subLabel: "ICT/FCT 펌웨어·통전 시험기 (1대 공용)",
+        type: "shared_tool",
+        x: 7.7,
+        y: 4.0,
+        fixed: false,
+      },
+      {
+        id: "wb3",
+        label: "내전압 검사·포장",
+        subLabel: "품질인증원 3 전담 [고전압 접지 고정]",
+        type: "workbench_inspect",
+        x: 10.6,
+        y: 3.1,
+        fixed: true,
+        assignedWorkerId: "worker3",
+      },
+      {
+        id: "outBox",
+        label: "출하 팔레트",
+        subLabel: "정전기 방지 포장 출고대",
+        type: "shipping_out",
+        x: 10.6,
+        y: 6.1,
+        fixed: true,
+      },
+    ],
+    products: {
+      productA: {
+        id: "productA",
+        partNumber: "EMS-204-IO",
+        name: "PLC 원격 제어 모듈 (EMS-204)",
+        shortName: "PLC 제어모듈",
+        color: "#0071e3",
+        badgeColor: "bg-blue-500/20 text-blue-700 border-blue-500/40",
+        description:
+          "펌웨어 플래싱 및 32채널 루프백 검증 때문에 공용 회로 시험기 점유(19초)가 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "회로 보드·방열판 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "방열 패드 부착 및 토크 드라이버 체결",
+          },
+          toolWork: {
+            seconds: 19,
+            source: "measured",
+            note: "공용 회로 시험기 펌웨어 입력 및 32채널 통신 시험",
+          },
+          inspectionPack: {
+            seconds: 8,
+            source: "measured",
+            note: "코팅 검수 및 정전기 실드백 포장",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+      productB: {
+        id: "productB",
+        partNumber: "EMS-880-VFD",
+        name: "인버터 드라이브 함체 (EMS-880)",
+        shortName: "인버터 함체",
+        color: "#f59e0b",
+        badgeColor: "bg-amber-500/20 text-amber-700 border-amber-500/40",
+        description:
+          "전원 인가 시험(15초) 후 1500V 고전압 내전압(Hi-Pot) 안전 시험 및 포장(13초)이 긴 품목",
+        orderCount: 5,
+        timings: {
+          pickHandling: {
+            seconds: 3,
+            source: "measured",
+            note: "부스바·하네스 키트 수령",
+          },
+          preAssembly: {
+            seconds: 5,
+            source: "measured",
+            note: "단자대 배선 및 러그 토크 체결",
+          },
+          toolWork: {
+            seconds: 15,
+            source: "measured",
+            note: "공용 시험기 제어 전원 인가 및 릴레이 동작 시험",
+          },
+          inspectionPack: {
+            seconds: 13,
+            source: "measured",
+            note: "1500V 내전압(Hi-Pot) 절연 시험 + 라벨 포장",
+          },
+        },
+        requiresBins: ["binA", "binB"],
+        requiresSharedTool: true,
+      },
+    },
+    constraints: {
+      rawNaturalLanguage:
+        "작업자 3명 유지. 고전압 내전압 시험대는 안전 펜스에 고정되어 이동 불가하며 검사 담당자(3번)만 수행.",
+      keepHeadcount3: true,
+      workbench3Fixed: true,
+      inspectorDedicated: true,
+      maxExtraTools: 1,
+      allowBinRelocation: true,
+      allowTransportRobot: true,
+      budgetLimitKRW: 25000000,
+      costMoveBinsKRW: 2400000,
+      costAddToolKRW: 16800000,
+      costAddRobotKRW: 87000000,
+      costMoveBinsUSD: 1800,
+      costAddToolUSD: 12500,
+      costAddRobotUSD: 65000,
+    },
+    defaultRealism: {
+      changeoverSeconds: 6,
+      reworkRatePercent: 15,
+      hourlyLaborRateUSD: 27,
+      hourlyLaborRateKRW: 21500,
+    },
+    standardOrderText: "PLC 제어 모듈 5대 + 인버터 드라이브 함체 5대 (평소 주문)",
+    urgentOrderText: "인버터 드라이브 함체 8대 + PLC 제어 모듈 2대 (긴급 주문)",
+  },
+};
+
+export const DEFAULT_BASELINE_STATIONS: StationNode[] =
+  INDUSTRY_PRESETS.cnc_metal_shop.stations;
+
+export const DEFAULT_PRODUCTS: Record<ProductId, ProductSpec> =
+  INDUSTRY_PRESETS.cnc_metal_shop.products;
+
+export const DEFAULT_WORK_INSTRUCTION_TEXT =
+  INDUSTRY_PRESETS.cnc_metal_shop.standardOrderText;
+
+export const URGENT_ORDER_INSTRUCTION_TEXT =
+  INDUSTRY_PRESETS.cnc_metal_shop.urgentOrderText;
+
+export const DEFAULT_CONSTRAINTS: ConstraintConfig =
+  INDUSTRY_PRESETS.cnc_metal_shop.constraints;
+
+export const INITIAL_VALIDATION_RECORDS: PhysicalValidationRecord[] = [
+  {
+    id: "val-baseline",
+    scenarioId: "baseline",
+    scenarioName: "현재 작업장",
+    trialOrder: "1차 스톱워치 측정",
+    predictedCompletionSec: 237,
+    actualMeasuredSec: 242,
+    predictedPrimaryBottleneck: "자재 이동 + 공용 설비 1대 앞 줄서기",
+    actualObservedBottleneck: "두 작업자가 공용 설비 앞에서 부딪혀 기다리고 불량 재작업 시 흐름이 끊김",
+    toolWaitMeasuredSec: 54,
+    inspectMaxWipMeasured: 2,
+    directionMatched: true,
+    notes: "스톱워치 실측 결과 시뮬레이션 예측과 2% 이내로 일치",
+  },
+  {
+    id: "val-move-bins",
+    scenarioId: "move_bins",
+    scenarioName: "자재대 가까이 배치",
+    trialOrder: "2차 스톱워치 측정",
+    predictedCompletionSec: 219,
+    actualMeasuredSec: 224,
+    predictedPrimaryBottleneck: "공용 설비 1대 앞 줄서기 심화",
+    actualObservedBottleneck: "자재대가 가까워져 이동은 줄었으나 공용 설비 1대 앞에서 줄서기가 더 길어짐",
+    toolWaitMeasuredSec: 65,
+    inspectMaxWipMeasured: 2,
+    directionMatched: true,
+    notes: "이동 시간 단축분이 공용 설비 대기 시간으로 옮겨가는 현상 확인",
+  },
+  {
+    id: "val-add-tool",
+    scenarioId: "add_tool",
+    scenarioName: "공용 설비 1대 추가",
+    trialOrder: "3차 스톱워치 측정",
+    predictedCompletionSec: 185,
+    actualMeasuredSec: 189,
+    predictedPrimaryBottleneck: "설비 대기 0초 해소 → 마지막 검사대로 병목 이동",
+    actualObservedBottleneck: "공용 설비 줄서기가 즉시 사라지고 전체 완료 시간이 가장 크게 단축됨",
+    toolWaitMeasuredSec: 0,
+    inspectMaxWipMeasured: 3,
+    directionMatched: true,
+    notes: "공용 설비 증설 시 하루 생산량이 가장 크게 늘어남을 실측으로 입증",
+  },
+  {
+    id: "val-add-robot",
+    scenarioId: "add_robot",
+    scenarioName: "자율 운반 로봇 도입",
+    trialOrder: "4차 스톱워치 측정",
+    predictedCompletionSec: 213,
+    actualMeasuredSec: 218,
+    predictedPrimaryBottleneck: "공용 설비 1대 앞 병목 지속 (투자 회수 장기화)",
+    actualObservedBottleneck: "로봇이 부품을 배달해 주지만 공용 설비 1대와 검사 속도에 막혀 효과 제한적",
+    toolWaitMeasuredSec: 62,
+    inspectMaxWipMeasured: 2,
+    directionMatched: true,
+    notes: "병목 설비 해결 전 고가 로봇 도입은 투자 대비 회수 기간이 매우 김",
+  },
+];

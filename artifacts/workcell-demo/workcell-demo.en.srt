@@ -1,0 +1,111 @@
+1
+00:00:00,000 --> 00:00:03,500
+What could help your shop finish the same order sooner?
+
+2
+00:00:03,500 --> 00:00:07,000
+Explore layout changes, equipment, and material delivery with WorkCell Twin.
+
+3
+00:00:07,000 --> 00:00:12,000
+Start in the English setup screen and choose an industry template.
+
+4
+00:00:12,000 --> 00:00:17,000
+CNC, food packaging, medical devices, and electronics provide editable starting conditions.
+
+5
+00:00:17,000 --> 00:00:22,000
+Drag a material rack or workbench to adjust the layout.
+
+6
+00:00:22,000 --> 00:00:27,000
+Use Reset Layout to return to the selected industry template.
+
+7
+00:00:27,000 --> 00:00:31,000
+Enter order quantities and the time required at each process step.
+
+8
+00:00:31,000 --> 00:00:35,000
+Here, Product A changes to six units, with a ten-second inspection step.
+
+9
+00:00:35,000 --> 00:00:39,000
+The comparison recalculates as the input values change.
+
+10
+00:00:39,000 --> 00:00:43,000
+Select a product-change setup time and a rework setting.
+
+11
+00:00:43,000 --> 00:00:47,000
+These are simulation assumptions that can be adjusted for each experiment.
+
+12
+00:00:47,000 --> 00:00:51,000
+Open Compare Options to view four changes under the same order conditions.
+
+13
+00:00:51,000 --> 00:00:55,000
+Compare completion times first, then inspect the modeled output and cost estimates.
+
+14
+00:00:55,000 --> 00:00:59,000
+The numbers shown here are example simulation results.
+
+15
+00:00:59,000 --> 00:01:03,000
+Switch from the normal order to an urgent mix with more Product B.
+
+16
+00:01:03,000 --> 00:01:07,000
+The four scenario results update together for the new workload.
+
+17
+00:01:07,000 --> 00:01:11,333
+Play the two-dimensional replay to follow workers and material flow.
+
+18
+00:01:11,333 --> 00:01:15,667
+Positions, queues, and completion counts come from the calculated simulation timeline.
+
+19
+00:01:15,667 --> 00:01:20,000
+Pause, restart, or scrub the timeline to inspect a specific moment.
+
+20
+00:01:20,000 --> 00:01:24,000
+Select a Watch Moment card to jump to a highlighted point in the run.
+
+21
+00:01:24,000 --> 00:01:28,000
+Inspect the shared equipment and the workers waiting around it.
+
+22
+00:01:28,000 --> 00:01:33,000
+Switch to the isometric view to inspect the layout and worker movement.
+
+23
+00:01:33,000 --> 00:01:38,000
+The camera control changes your view of the same simulated run.
+
+24
+00:01:38,000 --> 00:01:42,000
+Compare All 4 places every scenario in a shared replay view.
+
+25
+00:01:42,000 --> 00:01:46,000
+Look for differences in movement, queues, and completion progress.
+
+26
+00:01:46,000 --> 00:01:50,000
+Compare the standard FIFO policy with the adaptive scheduling option.
+
+27
+00:01:50,000 --> 00:01:54,000
+In this prototype, adaptive decisions use coded rules, not live language-model agents.
+
+28
+00:01:54,000 --> 00:02:00,000
+Start with your own inputs and explore your next shop-floor experiment.
